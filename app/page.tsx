@@ -18,15 +18,44 @@ export default function BestWishPage() {
     setWish(wishText)
     setIsAnalyzing(true)
     
-    // 模拟 AI 分析过程
-    setTimeout(() => {
-      setResult({
-        logicFlaws: `你的愿望"${wishText}"存在以下逻辑漏洞：\n\n1. 时间悖论：如果愿望涉及改变过去，可能导致因果循环\n2. 范围模糊：愿望的具体实现边界不明确\n3. 副作用忽略：未考虑愿望实现后的连锁反应`,
-        crashImplementation: `崩坏实现方案：\n\n• 扭曲现实法则，强制执行愿望逻辑\n• 忽略物理定律约束，直接修改世界状态\n• 使用量子纠缠技术，同步多维度实现\n• 激活时空裂缝，从平行宇宙获取资源`,
-        generatedImage: '/api/placeholder/400/300'
+    try {
+      const response = await fetch('/api/wish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ wish: wishText }),
       })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      // 更新结果状态，映射 API 返回的字段到组件期望的字段
+      setResult({
+        logicFlaws: data.logic_analysis,
+        crashImplementation: data.ironic_fulfillment,
+        generatedImage: data.image_url
+      })
+
+    } catch (error) {
+      console.error('许愿处理失败:', error)
+      
+      // 设置错误状态，显示友好的错误信息
+      setResult({
+        logicFlaws: '分析过程中出现错误，请稍后重试',
+        crashImplementation: '实现方案生成失败，邪恶许愿机暂时离线',
+        generatedImage: ''
+      })
+    } finally {
       setIsAnalyzing(false)
-    }, 3000)
+    }
   }
 
   return (
