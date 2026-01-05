@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Send, Loader2 } from 'lucide-react'
 
 interface WishInputProps {
@@ -10,6 +10,11 @@ interface WishInputProps {
 
 export default function WishInput({ onSubmit, isAnalyzing }: WishInputProps) {
   const [inputValue, setInputValue] = useState('')
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,15 +40,17 @@ export default function WishInput({ onSubmit, isAnalyzing }: WishInputProps) {
             />
             
             {/* 输入框内的装饰效果 */}
-            <div className="absolute top-2 right-2 flex space-x-1">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-1 h-1 bg-cyber-blue rounded-full animate-pulse"
-                  style={{ animationDelay: `${i * 0.3}s` }}
-                />
-              ))}
-            </div>
+            {isClient && (
+              <div className="absolute top-2 right-2 flex space-x-1">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-1 h-1 bg-cyber-blue rounded-full animate-pulse"
+                    style={{ animationDelay: `${i * 0.3}s` }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

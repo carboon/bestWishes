@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // 频率限制配置
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1分钟（毫秒）
-const RATE_LIMIT_MAX_REQUESTS = 2; // 每分钟最大请求数
+const RATE_LIMIT_MAX_REQUESTS = process.env.NODE_ENV === 'production' ? 2 : 5; // 生产环境2次，开发环境5次
 
 // 重试配置
 const MAX_RETRIES = 3;
@@ -109,27 +109,143 @@ interface WishResult {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('=== API 请求开始 ===');
   try {
     // 获取客户端 IP 并检查频率限制
     const clientIP = getClientIP(request);
+    console.log('客户端 IP:', clientIP);
     
     if (!checkRateLimit(clientIP)) {
+      console.log('频率限制触发');
       return NextResponse.json(
         { error: '愿望机能量耗尽，请稍后再试' },
         { status: 429 }
       );
     }
 
-    // 获取环境变量
-    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-    const togetherApiKey = process.env.TOGETHER_API_KEY;
+    // 环境配置检测
+    const isProduction = process.env.NODE_ENV === 'production';
+    console.log(`当前环境: ${isProduction ? '生产环境' : '测试环境'}`);
 
-    if (!openRouterApiKey || !togetherApiKey) {
+    // 获取环境变量并设置回退机制
+    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+    const kimiApiKey = process.env.KIMI_API_KEY;
+    const zhipuApiKey = process.env.ZHIPU_API_KEY;
+    const togetherApiKey = process.env.TOGETHER_API_KEY;
+    const siliconFlowApiKeyCN = process.env.SILICONFLOW_API_KEY_CN;
+    const siliconFlowApiKeyCOM = process.env.SILICONFLOW_API_KEY_COM;
+
+    // 调试环境变量
+    console.log('环境变量检查:');
+    console.log('- KIMI_API_KEY:', kimiApiKey ? '已设置' : '未设置');
+    console.log('- ZHIPU_API_KEY:', zhipuApiKey ? '已设置' : '未设置');
+    console.log('- SILICONFLOW_API_KEY_CN:', siliconFlowApiKeyCN ? '已设置' : '未设置');
+    console.log('- TOGETHER_API_KEY:', togetherApiKey ? '已设置' : '未设置');
+
+    // 检查 LLM 服务配置（根据环境选择）
+    const llmConfig = {
+      apiKey: '',
+      baseUrl: '',
+      provider: '',
+      models: [] as string[]
+    };
+
+    if (isProduction) {
+      // 生产环境优先级：OpenRouter > 智谱 AI > Moonshot
+      if (openRouterApiKey) {
+        llmConfig.apiKey = openRouterApiKey;
+        llmConfig.baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
+        llmConfig.provider = 'OpenRouter';
+        llmConfig.models = ['anthropic/claude-3.5-sonnet', 'deepseek/deepseek-chat'];
+      } else if (zhipuApiKey) {
+        llmConfig.apiKey = zhipuApiKey;
+        llmConfig.baseUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+        llmConfig.provider = 'ZhipuAI';
+        llmConfig.models = ['glm-4-plus', 'glm-4'];
+      } else if (kimiApiKey) {
+        llmConfig.apiKey = kimiApiKey;
+        llmConfig.baseUrl = 'https://api.moonshot.cn/v1/chat/completions';
+        llmConfig.provider = 'Moonshot';
+        llmConfig.models = ['moonshot-v1-8k'];
+      }
+    } else {
+      // 测试环境优先级：Moonshot > 智谱 AI > OpenRouter
+      if (kimiApiKey) {
+        llmConfig.apiKey = kimiApiKey;
+        llmConfig.baseUrl = 'https://api.moonshot.cn/v1/chat/completions';
+        llmConfig.provider = 'Moonshot';
+        llmConfig.models = ['moonshot-v1-8k'];
+      } else if (zhipuApiKey) {
+        llmConfig.apiKey = zhipuApiKey;
+        llmConfig.baseUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+        llmConfig.provider = 'ZhipuAI';
+        llmConfig.models = ['glm-4-plus', 'glm-4'];
+      } else if (openRouterApiKey) {
+        llmConfig.apiKey = openRouterApiKey;
+        llmConfig.baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
+        llmConfig.provider = 'OpenRouter';
+        llmConfig.models = ['anthropic/claude-3.5-sonnet', 'deepseek/deepseek-chat'];
+      }
+    }
+
+    // 检查图像生成服务配置（根据环境选择）
+    const availableImageServices: Array<{
+      apiKey: string;
+      baseUrl: string;
+      provider: string;
+    }> = [];
+    
+    if (isProduction) {
+      // 生产环境：优先 Together AI，备选 SiliconFlow COM
+      if (togetherApiKey) {
+        availableImageServices.push({
+          apiKey: togetherApiKey,
+          baseUrl: 'https://api.together.xyz/v1/images/generations',
+          provider: 'Together AI'
+        });
+      }
+      if (siliconFlowApiKeyCOM) {
+        availableImageServices.push({
+          apiKey: siliconFlowApiKeyCOM,
+          baseUrl: 'https://api.siliconflow.com/v1/images/generations',
+          provider: 'SiliconFlow COM'
+        });
+      }
+    } else {
+      // 测试环境：优先 SiliconFlow CN，备选 Together AI
+      if (siliconFlowApiKeyCN) {
+        availableImageServices.push({
+          apiKey: siliconFlowApiKeyCN,
+          baseUrl: 'https://api.siliconflow.cn/v1/images/generations',
+          provider: 'SiliconFlow CN'
+        });
+      }
+      if (togetherApiKey) {
+        availableImageServices.push({
+          apiKey: togetherApiKey,
+          baseUrl: 'https://api.together.xyz/v1/images/generations',
+          provider: 'Together AI'
+        });
+      }
+    }
+
+    // 验证必要的服务配置
+    if (!llmConfig.apiKey) {
       return NextResponse.json(
-        { error: '服务配置错误：缺少必要的 API 密钥' },
+        { error: '服务配置错误：缺少文本分析服务 (需要 OPENROUTER_API_KEY、ZHIPU_API_KEY 或 KIMI_API_KEY)' },
         { status: 500 }
       );
     }
+
+    if (availableImageServices.length === 0) {
+      return NextResponse.json(
+        { error: `服务配置错误：${isProduction ? '生产' : '测试'}环境缺少图像生成服务配置` },
+        { status: 500 }
+      );
+    }
+
+    const availableImageProviders = availableImageServices.map(s => s.provider);
+    console.log(`使用 LLM 服务: ${llmConfig.provider}, 可用图像服务: ${availableImageProviders.join(', ')}`);
 
     // 解析请求体
     const { wish }: WishRequest = await request.json();
@@ -141,7 +257,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 第一步：调用 OpenRouter API 进行逻辑分析
+    // 第一步：调用 LLM API 进行逻辑分析
     const systemPrompt = `你是一个邪恶的许愿机，专门找出人类愿望中的逻辑漏洞，并以讽刺的方式"实现"这些愿望。
 
 你的任务：
@@ -156,27 +272,29 @@ export async function POST(request: NextRequest) {
   "visual_prompt": "英文图像生成提示词，描述讽刺结果的视觉场景，风格要黑暗、超现实、戏剧性"
 }`;
 
-    // 优先使用 Claude 3.5 Sonnet，如果失败则回退到 DeepSeek
-    const models = [
-      'anthropic/claude-3.5-sonnet',
-      'deepseek/deepseek-chat'
-    ];
-
     let llmResponse: Response | null = null;
     let lastLLMError: Error | null = null;
 
-    for (const model of models) {
+    // 尝试所有可用的 LLM 模型
+    for (const model of llmConfig.models) {
       try {
-        console.log(`尝试使用模型: ${model}`);
+        console.log(`尝试使用 ${llmConfig.provider} 模型: ${model}`);
         
-        llmResponse = await fetchWithRetry('https://openrouter.ai/api/v1/chat/completions', {
+        // 构建请求头
+        const headers: Record<string, string> = {
+          'Authorization': `Bearer ${llmConfig.apiKey}`,
+          'Content-Type': 'application/json'
+        };
+
+        // OpenRouter 需要额外的 headers
+        if (llmConfig.provider === 'OpenRouter') {
+          headers['HTTP-Referer'] = process.env.NEXT_PUBLIC_SITE_URL || 'https://bestwish.vercel.app';
+          headers['X-Title'] = 'Evil Wish Machine';
+        }
+
+        llmResponse = await fetchWithRetry(llmConfig.baseUrl, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openRouterApiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://bestwish.vercel.app',
-            'X-Title': 'Evil Wish Machine'
-          },
+          headers,
           body: JSON.stringify({
             model: model,
             messages: [
@@ -195,25 +313,25 @@ export async function POST(request: NextRequest) {
         });
 
         if (llmResponse.ok) {
-          console.log(`成功使用模型: ${model}`);
+          console.log(`成功使用 ${llmConfig.provider} 模型: ${model}`);
           break;
         }
       } catch (error) {
         lastLLMError = error instanceof Error ? error : new Error('Unknown LLM error');
-        console.log(`模型 ${model} 调用失败:`, lastLLMError.message);
+        console.log(`${llmConfig.provider} 模型 ${model} 调用失败:`, lastLLMError.message);
         continue;
       }
     }
 
     if (!llmResponse || !llmResponse.ok) {
-      throw new Error(`所有 LLM 模型调用失败: ${lastLLMError?.message || 'Unknown error'}`);
+      throw new Error(`${llmConfig.provider} 所有模型调用失败: ${lastLLMError?.message || 'Unknown error'}`);
     }
 
     const llmData = await llmResponse.json();
     const llmContent = llmData.choices[0]?.message?.content;
 
     if (!llmContent) {
-      throw new Error('LLM 返回内容为空');
+      throw new Error(`${llmConfig.provider} 返回内容为空`);
     }
 
     // 解析 LLM 返回的 JSON
@@ -224,40 +342,102 @@ export async function POST(request: NextRequest) {
       const jsonString = jsonMatch ? jsonMatch[0] : llmContent;
       parsedLLMResponse = JSON.parse(jsonString);
     } catch (error) {
-      throw new Error('LLM 返回的内容不是有效的 JSON 格式');
+      throw new Error(`${llmConfig.provider} 返回的内容不是有效的 JSON 格式`);
     }
 
     // 验证必要字段
     if (!parsedLLMResponse.logic_analysis || !parsedLLMResponse.ironic_fulfillment || !parsedLLMResponse.visual_prompt) {
-      throw new Error('LLM 返回的 JSON 缺少必要字段');
+      throw new Error(`${llmConfig.provider} 返回的 JSON 缺少必要字段`);
     }
 
-    // 第二步：调用 Together AI 生成图像
-    const imageResponse = await fetchWithRetry('https://api.together.xyz/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${togetherApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'black-forest-labs/FLUX.1-schnell',
-        prompt: `${parsedLLMResponse.visual_prompt}, dark surreal art, dramatic lighting, high contrast, cinematic composition`,
-        width: 1024,
-        height: 1024,
-        steps: 4,
-        n: 1
-      })
-    });
+    // 第二步：调用图像生成 API（支持回退机制）
+    let imageUrl: string | null = null;
+    let lastImageError: Error | null = null;
 
-    if (!imageResponse.ok) {
-      throw new Error(`Together AI API 调用失败: ${imageResponse.status}`);
+    // 尝试所有可用的图像生成服务
+    for (const service of availableImageServices) {
+      try {
+        console.log(`使用 ${service.provider} 生成图像`);
+        console.log(`图像 API 地址: ${service.baseUrl}`);
+        console.log(`API Key 长度: ${service.apiKey.length}`);
+        console.log(`API Key 前缀: ${service.apiKey.substring(0, 10)}...`);
+        
+        const requestBody = service.provider === 'SiliconFlow CN' ? {
+          model: 'Kwai-Kolors/Kolors',
+          prompt: `${parsedLLMResponse.visual_prompt}, dark surreal art, dramatic lighting, high contrast, cinematic composition`,
+          image_size: "1024x1024",
+          batch_size: 1,
+          num_inference_steps: 20,
+          guidance_scale: 7.5
+        } : service.provider === 'SiliconFlow COM' ? {
+          model: 'black-forest-labs/FLUX.1-schnell',
+          prompt: `${parsedLLMResponse.visual_prompt}, dark surreal art, dramatic lighting, high contrast, cinematic composition`,
+          image_size: "1024x1024",
+          batch_size: 1,
+          num_inference_steps: 20,
+          guidance_scale: 7.5,
+          prompt_enhancement: false
+        } : {
+          model: 'black-forest-labs/FLUX.1-schnell',
+          prompt: `${parsedLLMResponse.visual_prompt}, dark surreal art, dramatic lighting, high contrast, cinematic composition`,
+          width: 1024,
+          height: 1024,
+          steps: 4,
+          n: 1
+        };
+
+        console.log(`${service.provider} 请求参数:`, JSON.stringify(requestBody, null, 2));
+        
+        const imageResponse = await fetchWithRetry(service.baseUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${service.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!imageResponse.ok) {
+          // 获取详细的错误信息
+          let errorDetails = '';
+          try {
+            const errorData = await imageResponse.json();
+            errorDetails = JSON.stringify(errorData);
+          } catch (e) {
+            errorDetails = await imageResponse.text();
+          }
+          
+          console.error(`${service.provider} API 错误详情:`, errorDetails);
+          throw new Error(`${service.provider} API 调用失败: ${imageResponse.status} - ${errorDetails}`);
+        }
+
+        const imageData = await imageResponse.json();
+
+        // 根据不同的服务提供商解析响应格式
+        if (service.provider === 'Together AI') {
+          imageUrl = imageData.data[0]?.url;
+        } else if (service.provider === 'SiliconFlow CN' || service.provider === 'SiliconFlow COM') {
+          imageUrl = imageData.images[0]?.url;
+        } else {
+          imageUrl = imageData.data[0]?.url || imageData.images[0]?.url;
+        }
+
+        if (imageUrl) {
+          console.log(`成功使用 ${service.provider} 生成图像`);
+          break; // 成功生成图像，跳出循环
+        } else {
+          throw new Error(`${service.provider} 图像生成失败：未获取到图片 URL`);
+        }
+
+      } catch (error) {
+        lastImageError = error instanceof Error ? error : new Error('Unknown image generation error');
+        console.log(`${service.provider} 图像生成失败:`, lastImageError.message);
+        continue; // 尝试下一个服务
+      }
     }
-
-    const imageData = await imageResponse.json();
-    const imageUrl = imageData.data[0]?.url;
 
     if (!imageUrl) {
-      throw new Error('图像生成失败：未获取到图片 URL');
+      throw new Error(`所有图像生成服务都失败了: ${lastImageError?.message || 'Unknown error'}`);
     }
 
     // 返回完整结果
@@ -271,6 +451,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('API 处理错误:', error);
+    console.error('错误堆栈:', error instanceof Error ? error.stack : 'No stack trace');
     
     // 返回友好的错误信息
     const errorMessage = error instanceof Error ? error.message : '未知错误';

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sparkles, Zap, Brain, Image as ImageIcon, Send } from 'lucide-react'
 import WishInput from './components/WishInput'
 import ResultDisplay from './components/ResultDisplay'
@@ -8,11 +8,17 @@ import ResultDisplay from './components/ResultDisplay'
 export default function BestWishPage() {
   const [wish, setWish] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const [result, setResult] = useState<{
     logicFlaws: string
     crashImplementation: string
     generatedImage: string
   } | null>(null)
+
+  // 确保只在客户端渲染粒子效果
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const handleWishSubmit = async (wishText: string) => {
     setWish(wishText)
@@ -62,7 +68,7 @@ export default function BestWishPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* 背景粒子效果 */}
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(50)].map((_, i) => (
+        {isClient && [...Array(50)].map((_, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 bg-cyber-blue rounded-full animate-pulse"
@@ -107,17 +113,19 @@ export default function BestWishPage() {
       )}
 
       {/* 底部装饰 */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-        <div className="flex space-x-2">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse"
-              style={{ animationDelay: `${i * 0.2}s` }}
-            />
-          ))}
+      {isClient && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+          <div className="flex space-x-2">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse"
+                style={{ animationDelay: `${i * 0.2}s` }}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

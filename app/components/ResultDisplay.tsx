@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Brain, Zap, Image as ImageIcon, Loader2 } from 'lucide-react'
 
 interface ResultDisplayProps {
@@ -12,6 +13,11 @@ interface ResultDisplayProps {
 }
 
 export default function ResultDisplay({ result, isAnalyzing }: ResultDisplayProps) {
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
   if (isAnalyzing) {
     return (
       <div className="w-full max-w-6xl mx-auto z-10">
@@ -35,15 +41,17 @@ export default function ResultDisplay({ result, isAnalyzing }: ResultDisplayProp
                   <p className="text-gray-400 text-center">AI 正在分析中...</p>
                   
                   {/* 加载动画点 */}
-                  <div className="flex space-x-1 mt-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-2 h-2 bg-${item.color} rounded-full animate-pulse`}
-                        style={{ animationDelay: `${i * 0.2}s` }}
-                      />
-                    ))}
-                  </div>
+                  {isClient && (
+                    <div className="flex space-x-1 mt-4">
+                      {[...Array(3)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-2 h-2 bg-${item.color} rounded-full animate-pulse`}
+                          style={{ animationDelay: `${i * 0.2}s` }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
