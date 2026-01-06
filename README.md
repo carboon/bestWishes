@@ -71,7 +71,7 @@ git clone <repository-url>
 cd bestwish
 
 # 安装依赖
-npm install
+pnpm install
 ```
 
 ### 2. 环境变量配置
@@ -108,7 +108,7 @@ NEXT_PUBLIC_SITE_URL=https://your-domain.com
 
 ### 3. 启动开发服务器
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 访问 [http://localhost:3000](http://localhost:3000) 开始使用。
@@ -219,10 +219,10 @@ const RATE_LIMIT_MAX_REQUESTS = process.env.NODE_ENV === 'production' ? 2 : 5;
 ### 手动部署
 ```bash
 # 构建生产版本
-npm run build
+pnpm run build
 
 # 启动生产服务器
-npm start
+pnpm start
 ```
 
 ## 🔍 故障排除
@@ -252,7 +252,7 @@ npm start
 开发环境下 API 会输出详细的调试信息：
 ```bash
 # 查看服务器日志
-npm run dev
+pnpm run dev
 # 然后查看控制台输出
 ```
 
