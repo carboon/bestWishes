@@ -1,0 +1,12 @@
+name = "bestwish"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+name = "bestwish"
+
+[env.preview]
+name = "bestwish-preview"
+
+# Pages 项目配置
+pages_build_output_dir = ".vercel/output/static"

@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: '完美许愿器 - 愿望公证处',
-  description: '签订你的愿望契约，见证逻辑的终局。',
+  title: '愿望实现器 - 智能愿望分析平台',
+  description: '基于AI的愿望分析系统，探索每个愿望背后的可能性与后果。',
 }
 
 export default function RootLayout({

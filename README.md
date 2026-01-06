@@ -1,9 +1,10 @@
 # BestWish - 赛博许愿机 🌟
 
-一个具有赛博朋克风格的 AI 驱动许愿机应用，能够分析用户愿望中的逻辑漏洞并生成讽刺性的实现方案和配套图像。支持环境自适应配置，提供企业级的稳定性和全球服务能力。
+一个具有赛博朋克风格的 AI 驱动许愿机应用，能够分析用户愿望中的逻辑漏洞并生成讽刺性的实现方案和配套图像。现已完全兼容 **Cloudflare Pages**，支持全球边缘计算部署。
 
 ![赛博朋克风格](https://img.shields.io/badge/风格-赛博朋克-00f2ff?style=for-the-badge)
 ![Next.js](https://img.shields.io/badge/Next.js-14.0.0-black?style=for-the-badge&logo=next.js)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages-f38020?style=for-the-badge&logo=cloudflare)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
 
 ## ✨ 核心功能
@@ -27,20 +28,27 @@
 - **高质量输出**：1024x1024 分辨率，专业级效果
 
 ### 🛡️ 企业级特性
-- **智能频率限制**：开发环境 5 次/分钟，生产环境 2 次/分钟
+- **Edge Runtime 优化**：使用 Cloudflare Edge Runtime，全球低延迟访问
 - **错误重试机制**：指数退避算法，最多 3 次重试
 - **环境自适应**：测试/生产环境自动切换服务配置
 - **全球服务支持**：服务端 API 调用，支持中国大陆用户
 - **多服务回退**：主服务失败时自动切换到备用服务
 - **SSR 优化**：完美的服务端渲染支持，无水合错误
+- **Serverless 架构**：基于 Cloudflare Workers，按需计费，无服务器管理
 
 ## 🎯 技术架构
 
 ### 前端技术栈
-- **Next.js 14** - App Router 架构，完整的 SSR 支持
+- **Next.js 14** - App Router 架构，Edge Runtime 支持
 - **TypeScript** - 类型安全开发，企业级代码质量
 - **Tailwind CSS** - 实用优先的样式框架，响应式设计
 - **Lucide React** - 现代化图标库，一致的视觉体验
+
+### 部署架构
+- **Cloudflare Pages** - 全球 CDN 分发，边缘计算
+- **Cloudflare Workers** - API 路由运行在边缘节点
+- **Edge Runtime** - 无状态函数，毫秒级冷启动
+- **全球部署** - 300+ 边缘节点，就近访问
 
 ### AI 服务集成
 - **LLM 服务** - 环境自适应配置：
@@ -99,16 +107,23 @@ NEXT_PUBLIC_SITE_URL=https://your-domain.com
 **测试环境 (NODE_ENV=development)：**
 - LLM 优先级：Moonshot (Kimi) → 智谱 AI → OpenRouter
 - 图像优先级：SiliconFlow CN (Kolors) → Together AI
-- 频率限制：5 次/分钟
+- 适合开发调试，成本优化
 
 **生产环境 (NODE_ENV=production)：**
 - LLM 优先级：OpenRouter → 智谱 AI → Moonshot  
 - 图像优先级：Together AI → SiliconFlow COM
-- 频率限制：2 次/分钟
+- 企业级稳定性，全球服务覆盖
 
 ### 3. 启动开发服务器
 ```bash
+# 本地开发
 pnpm run dev
+
+# 构建 Cloudflare Pages 版本
+pnpm run pages:build
+
+# 本地预览 Cloudflare 版本（需要 wrangler）
+pnpm run preview
 ```
 
 访问 [http://localhost:3000](http://localhost:3000) 开始使用。
@@ -163,8 +178,9 @@ bestwish/
 **状态码：**
 - `200` - 成功
 - `400` - 请求参数错误
-- `429` - 频率限制
 - `500` - 服务器错误
+
+**注意：** Cloudflare Pages 版本已移除内存频率限制，建议在 Cloudflare Dashboard 中配置 Rate Limiting 规则。
 
 ## 🌍 环境配置策略
 
@@ -173,13 +189,12 @@ bestwish/
 - 使用 SiliconFlow CN 的 Kolors 模型进行图像生成
 - 降低网络延迟，提升开发体验
 - 成本优化的服务组合
-- 更宽松的频率限制便于调试
 
 **生产环境优势：**
 - 优先使用高质量模型（Claude 3.5 Sonnet）
 - 稳定的国际服务（Together AI）
 - 企业级可靠性保障
-- 严格的频率限制防止滥用
+- 全球边缘节点部署
 
 ## 🎨 自定义配置
 
@@ -203,20 +218,60 @@ animation: {
 ```
 
 ### 修改频率限制
-在 `app/api/wish/route.ts` 中调整：
-```javascript
-const RATE_LIMIT_MAX_REQUESTS = process.env.NODE_ENV === 'production' ? 2 : 5;
+在 Cloudflare Dashboard 中配置 Rate Limiting 规则：
+```
+路径: /api/wish
+限制: 每分钟 5 次请求（可根据需要调整）
 ```
 
 ## 🚀 部署指南
 
-### Vercel 部署（推荐）
+### Cloudflare Pages 部署（推荐）
+
+#### 方法一：通过 Cloudflare Dashboard
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)
+2. 进入 **Pages** → **Create a project** → **Connect to Git**
+3. 选择你的 GitHub 仓库
+4. 配置构建设置：
+   - **Framework preset**: Next.js
+   - **Build command**: `pnpm run pages:build`
+   - **Build output directory**: `.vercel/output/static`
+   - **Node.js version**: 18 或更高版本
+
+5. 在 **Environment variables** 中添加 API Keys：
+   ```
+   KIMI_API_KEY=your_kimi_api_key
+   ZHIPU_API_KEY=your_zhipu_api_key
+   OPENROUTER_API_KEY=your_openrouter_api_key
+   TOGETHER_API_KEY=your_together_api_key
+   SILICONFLOW_API_KEY_CN=your_siliconflow_cn_key
+   SILICONFLOW_API_KEY_COM=your_siliconflow_com_key
+   NODE_ENV=production
+   ```
+
+6. 点击 **Save and Deploy**
+
+#### 方法二：通过 Wrangler CLI
+```bash
+# 安装 Wrangler CLI
+npm install -g wrangler
+
+# 登录 Cloudflare
+wrangler login
+
+# 构建并部署
+pnpm run deploy
+```
+
+### 传统部署方式
+
+#### Vercel 部署
 1. 连接 GitHub 仓库到 Vercel
 2. 在 Vercel 环境变量中设置 API 密钥
 3. 设置 `NODE_ENV=production`
 4. 自动部署完成
 
-### 手动部署
+#### 手动部署
 ```bash
 # 构建生产版本
 pnpm run build
@@ -232,37 +287,50 @@ pnpm start
 **1. API 500 错误**
 - 检查环境变量是否正确设置
 - 确认 API 密钥有效且有足够配额
-- 查看服务器日志获取详细错误信息
+- 查看 Cloudflare Pages Functions 日志获取详细错误信息
 
 **2. 图像生成失败**
 - 确认对应环境的图像服务 API 密钥已配置
 - 测试环境需要 `SILICONFLOW_API_KEY_CN`
 - 生产环境需要 `TOGETHER_API_KEY` 或 `SILICONFLOW_API_KEY_COM`
 
-**3. SSR 水合错误**
+**3. Cloudflare Pages 构建失败**
+- 确认 Node.js 版本设置为 18 或更高
+- 检查构建命令是否为 `pnpm run pages:build`
+- 查看构建日志中的具体错误信息
+
+**4. Edge Runtime 兼容性问题**
+- 确保代码中没有使用 Node.js 特有的 API
+- 检查第三方库是否支持 Edge Runtime
+- 查看 Cloudflare Workers 兼容性文档
+
+**5. SSR 水合错误**
 - 已修复所有动态样式的 SSR 问题
 - 如遇到新的水合错误，检查是否有新的随机元素
-
-**4. 频率限制 429 错误**
-- 开发环境：5 次/分钟
-- 生产环境：2 次/分钟
-- 等待一分钟后重试
 
 ### 调试模式
 开发环境下 API 会输出详细的调试信息：
 ```bash
-# 查看服务器日志
+# 本地开发调试
 pnpm run dev
-# 然后查看控制台输出
+
+# Cloudflare 本地预览调试
+pnpm run preview
 ```
+
+### 性能监控
+- 使用 Cloudflare Analytics 监控访问量和性能
+- 查看 Workers 执行时间和错误率
+- 监控 API 调用成功率和响应时间
 
 ## 🔒 安全特性
 
-- **频率限制**：防止 API 滥用
+- **Edge Runtime 隔离**：每个请求在独立的沙箱环境中执行
 - **输入验证**：严格的请求体验证
 - **错误处理**：友好的错误信息，不暴露敏感信息
 - **服务端渲染**：API 密钥安全存储在服务端
-- **IP 识别**：支持代理和 CDN 环境的真实 IP 获取
+- **IP 识别**：支持 Cloudflare、代理和 CDN 环境的真实 IP 获取
+- **全球 DDoS 防护**：Cloudflare 提供的企业级安全防护
 
 ## 🌍 浏览器支持
 
@@ -270,6 +338,26 @@ pnpm run dev
 - Firefox 88+
 - Safari 14+
 - Edge 90+
+
+## ⚡ Cloudflare Pages 优势
+
+### 性能优势
+- **全球 CDN**：300+ 边缘节点，就近访问
+- **毫秒级冷启动**：Edge Runtime 快速响应
+- **自动缓存**：静态资源全球缓存
+- **HTTP/3 支持**：最新网络协议优化
+
+### 成本优势
+- **按需计费**：只为实际使用付费
+- **免费额度**：每月 100,000 次请求免费
+- **无服务器管理**：零运维成本
+- **自动扩缩容**：应对流量峰值
+
+### 开发体验
+- **Git 集成**：推送代码自动部署
+- **预览环境**：每个 PR 自动生成预览链接
+- **实时日志**：Functions 执行日志实时查看
+- **A/B 测试**：内置流量分割功能
 
 ## 📄 许可证
 

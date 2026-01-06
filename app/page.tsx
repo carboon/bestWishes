@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import WishInput from './components/WishInput'
 import ResultDisplay from './components/ResultDisplay'
 
 export default function BestWishPage() {
   // 基础状态
-  const [currentWish, setCurrentWish] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [result, setResult] = useState<{
     logicFlaws: string
@@ -17,7 +16,6 @@ export default function BestWishPage() {
 
   const handleWishSubmit = async (wishText: string) => {
     // 记录当前愿望，用于结果展示
-    setCurrentWish(wishText)
     setIsAnalyzing(true)
     setResult(null) // 重置之前的结果
     
@@ -67,20 +65,22 @@ export default function BestWishPage() {
       {/* 主标题区域 */}
       <div className="text-center mb-16 animate-fade-in">
         <h1 className="text-5xl font-bold text-[#2d2a32] mb-4 tracking-tight">
-          完美许愿器
+          愿望实现器
         </h1>
         <p className="text-lg text-gray-500 font-serif italic italic opacity-80">
-          " So tell me, what is it you truly desire? "
+          " 每个愿望都有其代价，你准备好了吗？ "
         </p>
       </div>
 
       {/* 动态展示区域：输入框 vs 结果展示 */}
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-6xl">
         {!result && !isAnalyzing ? (
-          <WishInput 
-            onSubmit={handleWishSubmit}
-            isAnalyzing={isAnalyzing}
-          />
+          <div className="max-w-2xl mx-auto">
+            <WishInput 
+              onSubmit={handleWishSubmit}
+              isAnalyzing={isAnalyzing}
+            />
+          </div>
         ) : (
           <ResultDisplay 
             result={result}
@@ -94,18 +94,18 @@ export default function BestWishPage() {
         <div className="border-t border-dashed border-gray-300 w-full mb-8"></div>
         
         <p className="text-[11px] text-gray-400 font-serif italic leading-relaxed">
-          所有的愿望都已在暗中标好了代价。本系统基于逻辑推演，不承担任何因果责任。<br/>
-          智慧来源：DeepSeek-V3
+          每一个愿望背后都隐藏着不可预知的后果。本系统基于逻辑分析，不对结果承担责任。<br/>
+          AI 引擎：Claude-3.5-Sonnet / GLM-4-Plus / Moonshot-v1
         </p>
         
         <div className="text-[10px] text-gray-400 uppercase tracking-widest flex items-center justify-center space-x-2">
-          <span>© 2026 完美许愿器</span>
+          <span>© 2026 愿望实现器</span>
           <span className="text-gray-300">|</span>
-          <a href="#" className="underline hover:text-gray-600 transition-colors">GitHub Source</a>
+          <a href="https://github.com/carboon/bestWishes" className="underline hover:text-gray-600 transition-colors">GitHub Source</a>
         </div>
         
         <p className="text-[10px] text-gray-300 tracking-[0.5em] uppercase pb-8">
-          CAVEAT EMPTOR
+          BUYER BEWARE
         </p>
       </footer>
     </div>

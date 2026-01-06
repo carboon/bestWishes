@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 频率限制配置
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1分钟（毫秒）
-const RATE_LIMIT_MAX_REQUESTS = process.env.NODE_ENV === 'production' ? 2 : 5; // 生产环境2次，开发环境5次
+// 声明使用 Edge Runtime（Cloudflare Pages 必需）
+export const runtime = 'edge';
 
 // 重试配置
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1秒
-
-// 内存中存储请求记录（生产环境建议使用 Redis）
-const requestLog = new Map<string, number[]>();
 
 // 获取客户端 IP 地址
 function getClientIP(request: NextRequest): string {
@@ -28,28 +24,8 @@ function getClientIP(request: NextRequest): string {
     return cfConnectingIP;
   }
   
-  // 回退到连接 IP（在本地开发中可能是 localhost）
-  return request.ip || '127.0.0.1';
-}
-
-// 检查频率限制
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const requests = requestLog.get(ip) || [];
-  
-  // 清理过期的请求记录
-  const validRequests = requests.filter(timestamp => now - timestamp < RATE_LIMIT_WINDOW);
-  
-  // 检查是否超过限制
-  if (validRequests.length >= RATE_LIMIT_MAX_REQUESTS) {
-    return false; // 超过限制
-  }
-  
-  // 记录当前请求
-  validRequests.push(now);
-  requestLog.set(ip, validRequests);
-  
-  return true; // 允许请求
+  // Edge Runtime 回退方案
+  return '127.0.0.1';
 }
 
 // 延迟函数
@@ -111,17 +87,9 @@ interface WishResult {
 export async function POST(request: NextRequest) {
   console.log('=== API 请求开始 ===');
   try {
-    // 获取客户端 IP 并检查频率限制
+    // 获取客户端 IP（用于日志记录）
     const clientIP = getClientIP(request);
     console.log('客户端 IP:', clientIP);
-    
-    if (!checkRateLimit(clientIP)) {
-      console.log('频率限制触发');
-      return NextResponse.json(
-        { error: '愿望机能量耗尽，请稍后再试' },
-        { status: 429 }
-      );
-    }
 
     // 环境配置检测
     const isProduction = process.env.NODE_ENV === 'production';

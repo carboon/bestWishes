@@ -10,14 +10,14 @@
 }
 
 @layer components {
-  /* 红黑相间的警告条纹 */
+  /* 蓝黑相间的装饰条纹 */
   .bg-repeating-warning {
     background: repeating-linear-gradient(
       45deg,
-      #333,
-      #333 10px,
-      #ef4444 10px,
-      #ef4444 20px
+      #1e293b,
+      #1e293b 10px,
+      #3b82f6 10px,
+      #3b82f6 20px
     );
   }
 
