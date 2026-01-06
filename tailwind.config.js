@@ -8,42 +8,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'cyber-blue': '#00f2ff',
-        'cyber-purple': '#bc13fe',
-        'cyber-pink': '#ff00bd',
-        'dark-bg': '#0a0a0a',
-        'dark-card': '#0a0a0c',
+        'paper-bg': '#f4f7f6',      // 页面底色：极浅灰绿
+        'contract-bg': '#fdfaf5',   // 契约卡片色：米白色纸张
+        'bureau-black': '#2d2a32',  // 沉稳的墨黑色
+        'archive-red': '#b91c1c',   // 警示红色
+      },
+      fontFamily: {
+        'serif': ['Georgia', 'serif'], // 增加衬线体用于引用
       },
       animation: {
-        'glow': 'glow 2s ease-in-out infinite alternate',
-        'fade-in': 'fade-in 0.8s ease-out forwards',
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'float': 'float 6s ease-in-out infinite',
+        'fade-in': 'fade-in 0.5s ease-out forwards',
+        'stamp': 'stamp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
       },
       keyframes: {
-        glow: {
-          '0%': { 
-            boxShadow: '0 0 5px #00f2ff, 0 0 10px #00f2ff, 0 0 15px #00f2ff',
-            textShadow: '0 0 5px #00f2ff'
-          },
-          '100%': { 
-            boxShadow: '0 0 10px #00f2ff, 0 0 20px #00f2ff, 0 0 30px #00f2ff',
-            textShadow: '0 0 10px #00f2ff'
-          }
-        },
         'fade-in': {
-          '0%': { 
-            opacity: '0',
-            transform: 'translateY(20px)'
-          },
-          '100%': { 
-            opacity: '1',
-            transform: 'translateY(0)'
-          }
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' }
         },
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-10px)' }
+        'stamp': {
+          '0%': { opacity: '0', transform: 'scale(2) rotate(-15deg)' },
+          '100%': { opacity: '0.6', transform: 'scale(1) rotate(-15deg)' }
         }
       }
     },

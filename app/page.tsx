@@ -1,28 +1,25 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Sparkles, Zap, Brain, Image as ImageIcon, Send } from 'lucide-react'
 import WishInput from './components/WishInput'
 import ResultDisplay from './components/ResultDisplay'
 
 export default function BestWishPage() {
-  const [wish, setWish] = useState('')
+  // 基础状态
+  const [currentWish, setCurrentWish] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [isClient, setIsClient] = useState(false)
   const [result, setResult] = useState<{
     logicFlaws: string
     crashImplementation: string
     generatedImage: string
+    wishText?: string
   } | null>(null)
 
-  // 确保只在客户端渲染粒子效果
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
   const handleWishSubmit = async (wishText: string) => {
-    setWish(wishText)
+    // 记录当前愿望，用于结果展示
+    setCurrentWish(wishText)
     setIsAnalyzing(true)
+    setResult(null) // 重置之前的结果
     
     try {
       const response = await fetch('/api/wish', {
@@ -43,89 +40,74 @@ export default function BestWishPage() {
         throw new Error(data.error)
       }
 
-      // 更新结果状态，映射 API 返回的字段到组件期望的字段
+      // 更新结果状态，并附带原始愿望文本
       setResult({
         logicFlaws: data.logic_analysis,
         crashImplementation: data.ironic_fulfillment,
-        generatedImage: data.image_url
+        generatedImage: data.image_url,
+        wishText: wishText // 传递给 ResultDisplay 显示在卡片顶部
       })
 
     } catch (error) {
       console.error('许愿处理失败:', error)
-      
-      // 设置错误状态，显示友好的错误信息
       setResult({
-        logicFlaws: '分析过程中出现错误，请稍后重试',
-        crashImplementation: '实现方案生成失败，邪恶许愿机暂时离线',
-        generatedImage: ''
+        logicFlaws: '分析过程中出现错误，档案室暂时失联',
+        crashImplementation: '契约生成失败，请核对网络连接后重试',
+        generatedImage: '',
+        wishText: wishText
       })
     } finally {
+      // 停止加载状态
       setIsAnalyzing(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* 背景粒子效果 */}
-      <div className="absolute inset-0 overflow-hidden">
-        {isClient && [...Array(50)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-cyber-blue rounded-full animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 3}s`
-            }}
-          />
-        ))}
-      </div>
-
-      {/* 主标题 */}
-      <div className="text-center mb-12 z-10">
-        <h1 className="text-6xl font-bold text-cyber-gradient mb-4 animate-glow">
-          BestWish
+    <div className="min-h-screen flex flex-col items-center bg-[#f4f7f6] pt-20 pb-10 px-4">
+      {/* 主标题区域 */}
+      <div className="text-center mb-16 animate-fade-in">
+        <h1 className="text-5xl font-bold text-[#2d2a32] mb-4 tracking-tight">
+          完美许愿器
         </h1>
-        <p className="text-xl text-gray-300 mb-2">赛博许愿机</p>
-        <p className="text-sm text-gray-500">探索你愿望背后的逻辑漏洞</p>
-        
-        {/* 装饰性图标 */}
-        <div className="flex justify-center space-x-4 mt-6">
-          <Sparkles className="w-6 h-6 text-cyber-blue animate-pulse" />
-          <Zap className="w-6 h-6 text-cyber-purple animate-pulse" style={{ animationDelay: '0.5s' }} />
-          <Brain className="w-6 h-6 text-cyber-pink animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
+        <p className="text-lg text-gray-500 font-serif italic italic opacity-80">
+          " So tell me, what is it you truly desire? "
+        </p>
       </div>
 
-      {/* 许愿输入区域 */}
-      <WishInput 
-        onSubmit={handleWishSubmit}
-        isAnalyzing={isAnalyzing}
-      />
+      {/* 动态展示区域：输入框 vs 结果展示 */}
+      <div className="w-full max-w-2xl">
+        {!result && !isAnalyzing ? (
+          <WishInput 
+            onSubmit={handleWishSubmit}
+            isAnalyzing={isAnalyzing}
+          />
+        ) : (
+          <ResultDisplay 
+            result={result}
+            isAnalyzing={isAnalyzing}
+          />
+        )}
+      </div>
 
-      {/* 结果展示区域 */}
-      {(result || isAnalyzing) && (
-        <ResultDisplay 
-          result={result}
-          isAnalyzing={isAnalyzing}
-        />
-      )}
-
-      {/* 底部装饰 */}
-      {isClient && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-          <div className="flex space-x-2">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse"
-                style={{ animationDelay: `${i * 0.2}s` }}
-              />
-            ))}
-          </div>
+      {/* 底部装饰与免责声明（参照示例图） */}
+      <footer className="mt-auto w-full max-w-2xl text-center space-y-4 pt-20">
+        <div className="border-t border-dashed border-gray-300 w-full mb-8"></div>
+        
+        <p className="text-[11px] text-gray-400 font-serif italic leading-relaxed">
+          所有的愿望都已在暗中标好了代价。本系统基于逻辑推演，不承担任何因果责任。<br/>
+          智慧来源：DeepSeek-V3
+        </p>
+        
+        <div className="text-[10px] text-gray-400 uppercase tracking-widest flex items-center justify-center space-x-2">
+          <span>© 2026 完美许愿器</span>
+          <span className="text-gray-300">|</span>
+          <a href="#" className="underline hover:text-gray-600 transition-colors">GitHub Source</a>
         </div>
-      )}
+        
+        <p className="text-[10px] text-gray-300 tracking-[0.5em] uppercase pb-8">
+          CAVEAT EMPTOR
+        </p>
+      </footer>
     </div>
   )
 }

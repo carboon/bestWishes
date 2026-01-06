@@ -1,62 +1,50 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Brain, Zap, Image as ImageIcon, Loader2 } from 'lucide-react'
+import { Loader2, Circle } from 'lucide-react'
 
 interface ResultDisplayProps {
-  result: {
-    logicFlaws: string
-    crashImplementation: string
-    generatedImage: string
-  } | null
+  result: { logicFlaws: string; crashImplementation: string; generatedImage: string; wishText?: string } | null
   isAnalyzing: boolean
 }
 
 export default function ResultDisplay({ result, isAnalyzing }: ResultDisplayProps) {
-  const [isClient, setIsClient] = useState(false)
+  const [isZoomed, setIsZoomed] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
 
+  // 动态步骤进度效果
   useEffect(() => {
-    setIsClient(true)
-  }, [])
+    if (isAnalyzing) {
+      setCurrentStep(0)
+      const timer1 = setTimeout(() => setCurrentStep(1), 1000)
+      const timer2 = setTimeout(() => setCurrentStep(2), 2500)
+      
+      return () => {
+        clearTimeout(timer1)
+        clearTimeout(timer2)
+      }
+    }
+  }, [isAnalyzing])
+
+  // 1. 加载中的“三步走”逻辑
   if (isAnalyzing) {
     return (
-      <div className="w-full max-w-6xl mx-auto z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 分析中的占位卡片 */}
-          {[
-            { icon: Brain, title: '逻辑漏洞分析', color: 'cyber-blue' },
-            { icon: Zap, title: '崩坏实现描述', color: 'cyber-purple' },
-            { icon: ImageIcon, title: '生成图片', color: 'cyber-pink' }
-          ].map((item, index) => (
-            <div key={index} className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-gray-600 to-gray-800 rounded-lg blur opacity-25"></div>
-              <div className="relative bg-dark-card border border-gray-700 rounded-lg p-6 h-80">
-                <div className="flex items-center space-x-3 mb-4">
-                  <item.icon className={`w-6 h-6 text-${item.color}`} />
-                  <h3 className="text-lg font-semibold text-white">{item.title}</h3>
-                </div>
-                
-                <div className="flex flex-col items-center justify-center h-48">
-                  <Loader2 className={`w-12 h-12 text-${item.color} animate-spin mb-4`} />
-                  <p className="text-gray-400 text-center">AI 正在分析中...</p>
-                  
-                  {/* 加载动画点 */}
-                  {isClient && (
-                    <div className="flex space-x-1 mt-4">
-                      {[...Array(3)].map((_, i) => (
-                        <div
-                          key={i}
-                          className={`w-2 h-2 bg-${item.color} rounded-full animate-pulse`}
-                          style={{ animationDelay: `${i * 0.2}s` }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="w-full max-w-md mx-auto space-y-8 py-12">
+        <StepItem 
+          icon={currentStep >= 0 ? <Loader2 className="w-4 h-4 animate-spin"/> : <Circle className="w-4 h-4 text-gray-300"/>} 
+          text="正在审查愿望契约..." 
+          active={currentStep >= 0} 
+        />
+        <StepItem 
+          icon={currentStep >= 1 ? <Loader2 className="w-4 h-4 animate-spin"/> : <Circle className="w-4 h-4 text-gray-300"/>} 
+          text="正在寻找逻辑漏洞..." 
+          active={currentStep >= 1} 
+        />
+        <StepItem 
+          icon={currentStep >= 2 ? <Loader2 className="w-4 h-4 animate-spin"/> : <Circle className="w-4 h-4 text-gray-300"/>} 
+          text="正在构建讽刺现实..." 
+          active={currentStep >= 2} 
+        />
       </div>
     )
   }
@@ -64,88 +52,68 @@ export default function ResultDisplay({ result, isAnalyzing }: ResultDisplayProp
   if (!result) return null
 
   return (
-    <div className="w-full max-w-6xl mx-auto z-10 animate-fade-in">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 逻辑漏洞分析 */}
-        <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-cyber-blue to-blue-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
-          <div className="relative bg-dark-card border border-gray-700 rounded-lg p-6 h-80 overflow-hidden">
-            <div className="flex items-center space-x-3 mb-4">
-              <Brain className="w-6 h-6 text-cyber-blue" />
-              <h3 className="text-lg font-semibold text-white">逻辑漏洞分析</h3>
-            </div>
-            
-            <div className="text-gray-300 text-sm leading-relaxed overflow-y-auto h-48 custom-scrollbar">
-              <pre className="whitespace-pre-wrap font-sans">{result.logicFlaws}</pre>
-            </div>
-            
-            {/* 装饰性边框效果 */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-blue to-transparent"></div>
+    <div className="w-full max-w-2xl mx-auto space-y-8 animate-fade-in">
+      {/* 2. 档案卡片文字结果 */}
+      <div className="bg-[#fdfaf5] border border-[#e0dad0] shadow-md relative overflow-hidden rounded-sm">
+        <div className="h-2 w-full bg-repeating-warning"></div> {/* 红黑条纹见CSS */}
+        
+        <div className="p-8 md:p-12 space-y-8">
+          <div className="text-center">
+            <span className="text-[10px] text-gray-400 uppercase tracking-widest">原定愿望</span>
+            <h2 className="text-2xl font-bold mt-4 font-serif italic text-[#2d2a32]">
+              「 {result.wishText || "未定义愿望"} 」
+            </h2>
           </div>
-        </div>
 
-        {/* 崩坏实现描述 */}
-        <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-cyber-purple to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
-          <div className="relative bg-dark-card border border-gray-700 rounded-lg p-6 h-80 overflow-hidden">
-            <div className="flex items-center space-x-3 mb-4">
-              <Zap className="w-6 h-6 text-cyber-purple" />
-              <h3 className="text-lg font-semibold text-white">崩坏实现描述</h3>
-            </div>
-            
-            <div className="text-gray-300 text-sm leading-relaxed overflow-y-auto h-48 custom-scrollbar">
-              <pre className="whitespace-pre-wrap font-sans">{result.crashImplementation}</pre>
-            </div>
-            
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-purple to-transparent"></div>
+          <div className="border-t border-dashed border-gray-300 relative my-8">
+            <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#fdfaf5] px-4 text-[10px] text-gray-400">契约达成情况</span>
           </div>
-        </div>
 
-        {/* 生成图片 */}
-        <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-cyber-pink to-pink-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
-          <div className="relative bg-dark-card border border-gray-700 rounded-lg p-6 h-80 overflow-hidden">
-            <div className="flex items-center space-x-3 mb-4">
-              <ImageIcon className="w-6 h-6 text-cyber-pink" />
-              <h3 className="text-lg font-semibold text-white">生成图片</h3>
+          <div className="bg-white/50 border border-gray-100 p-6 relative">
+            <h3 className="text-red-600 text-[10px] font-bold mb-4 uppercase">实现场景 (逻辑检查通过)</h3>
+            <p className="text-gray-700 leading-relaxed text-sm whitespace-pre-wrap font-serif">
+              {result.crashImplementation}
+            </p>
+            {/* 印章效果 */}
+            <div className="absolute bottom-2 right-6 opacity-40 rotate-[-15deg] border-4 border-double border-red-600 text-red-600 font-bold px-2 py-1 text-xl rounded">
+              已达成
             </div>
-            
-            <div className="flex items-center justify-center h-48 bg-gray-900 rounded-lg border border-gray-600 overflow-hidden">
-              {result.generatedImage ? (
-                <div className="relative w-full h-full group">
-                  <img
-                    src={result.generatedImage}
-                    alt="AI 生成的愿望实现图片"
-                    className="w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
-                  />
-                  {/* 发光边框效果 */}
-                  <div className="absolute inset-0 rounded-lg border-2 border-cyber-pink opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-glow"></div>
-                  {/* 内部发光效果 */}
-                  <div className="absolute inset-0 rounded-lg bg-gradient-to-t from-cyber-pink/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <ImageIcon className="w-16 h-16 text-cyber-pink mx-auto mb-4 opacity-50" />
-                  <p className="text-gray-400 text-sm">图片生成失败</p>
-                  <p className="text-gray-500 text-xs mt-1">请重试</p>
-                </div>
-              )}
-            </div>
-            
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-pink to-transparent"></div>
           </div>
         </div>
       </div>
 
-      {/* 重新许愿按钮 */}
-      <div className="flex justify-center mt-8">
-        <button
-          onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-gradient-to-r from-gray-700 to-gray-600 rounded-lg text-white hover:from-gray-600 hover:to-gray-500 transition-all duration-300 hover:scale-105"
+      {/* 3. 图片结果 (在下方展示) */}
+      <div className="space-y-4">
+        <div className="text-center text-[10px] text-gray-400 uppercase tracking-[0.3em]">视觉呈现 / VISUALIZATION</div>
+        <div 
+          className={`relative cursor-zoom-in transition-all duration-500 ease-in-out ${isZoomed ? 'fixed inset-0 z-50 bg-black/90 p-4 flex items-center justify-center' : 'w-full'}`}
+          onClick={() => setIsZoomed(!isZoomed)}
         >
-          重新许愿
+          <img 
+            src={result.generatedImage} 
+            alt="Result" 
+            className={`${isZoomed ? 'max-h-full max-w-full object-contain' : 'w-full rounded-sm shadow-lg border border-gray-200'}`}
+          />
+          {isZoomed && (
+            <div className="absolute top-8 right-8 text-white text-sm">点击退出</div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-center pb-20">
+        <button onClick={() => window.location.reload()} className="px-8 py-2 bg-[#2d2a32] text-white text-xs hover:bg-black">
+          重新修正愿望 w
         </button>
       </div>
+    </div>
+  )
+}
+
+function StepItem({ icon, text, active }: { icon: React.ReactNode, text: string, active: boolean }) {
+  return (
+    <div className={`flex items-center space-x-4 transition-opacity ${active ? 'opacity-100' : 'opacity-30'}`}>
+      <div className="flex-shrink-0">{icon}</div>
+      <span className="text-sm font-medium text-gray-700">{text}</span>
     </div>
   )
 }
